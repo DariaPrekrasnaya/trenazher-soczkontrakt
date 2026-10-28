@@ -1,0 +1,37 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Тренажёр: тест на предпринимателя</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f6f3ef;color:#222}
+.w{max-width:640px;margin:0 auto;padding:20px 16px 40px}h1{font-size:22px;margin:8px 0 4px}p.s{color:#666;margin:0 0 18px}
+.card{background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+.bar{height:6px;background:#eee;border-radius:3px;margin:0 0 14px;overflow:hidden}.bar i{display:block;height:100%;background:#e0566b;width:0}
+.n{color:#888;font-size:14px}.q{font-size:18px;margin:8px 0 14px;line-height:1.35}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px}
+.o{display:block;width:100%;text-align:left;padding:13px 14px;margin:0 0 9px;background:#f2f2f2}
+.o.ok{background:#d6f5dd}.o.no{background:#fbd9dd}.why{font-size:15px;color:#444;margin:6px 0 10px}
+.b{background:#e0566b;color:#fff;padding:13px 18px;width:100%;margin-top:6px}.b2{background:#fff;color:#e0566b;border:2px solid #e0566b;padding:11px 18px;width:100%;margin-top:9px}
+.big{font-size:40px;font-weight:700;margin:6px 0}
+</style></head><body><div class="w">
+<h1>Тренажёр: тест «можете ли вы быть предпринимателем»</h1>
+<p class="s">для соцконтракта. отвечайте, сразу видно, где ошибка</p>
+<div class="card" id="app"></div></div>
+<script src="questions.js"></script>
+<script>
+const Q=window.QUESTIONS,app=document.getElementById('app');let order,i,score,wrong;
+function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
+function start(list){order=shuffle(list);i=0;score=0;wrong=[];show()}
+function show(){const t=Q[order[i]];
+ app.innerHTML=`<div class="bar"><i style="width:${i/order.length*100}%"></i></div><div class="n">вопрос ${i+1} из ${order.length}</div><div class="q"></div><div id="o"></div><div id="f"></div>`;
+ app.querySelector('.q').textContent=t.q;const box=app.querySelector('#o');
+ t.a.forEach((txt,k)=>{const b=document.createElement('button');b.className='o';b.textContent=txt;b.onclick=()=>pick(k);box.appendChild(b)})}
+function pick(k){const t=Q[order[i]],bs=app.querySelectorAll('.o');bs.forEach(b=>b.disabled=true);
+ bs[t.ok].classList.add('ok');if(k===t.ok)score++;else{bs[k].classList.add('no');wrong.push(order[i])}
+ const f=app.querySelector('#f');if(t.why){const d=document.createElement('div');d.className='why';d.textContent=t.why;f.appendChild(d)}
+ const n=document.createElement('button');n.className='b';n.textContent=i+1<order.length?'дальше':'результат';n.onclick=()=>{i++;i<order.length?show():end()};f.appendChild(n)}
+function end(){const p=Math.round(score/order.length*100);
+ app.innerHTML=`<div class="n">результат</div><div class="big">${score} из ${order.length}</div><p>${p>=80?'отлично, вы готовы к тесту':'ещё немного потренируйтесь'}</p>`;
+ if(wrong.length){const b=document.createElement('button');b.className='b';b.textContent='повторить ошибки ('+wrong.length+')';const w=wrong.slice();b.onclick=()=>start(w);app.appendChild(b)}
+ const r=document.createElement('button');r.className='b2';r.textContent='пройти заново';r.onclick=()=>start(Q.map((_,k)=>k));app.appendChild(r)}
+start(Q.map((_,k)=>k));
+</script></body></html>
