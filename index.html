@@ -12,34 +12,61 @@ button{font:inherit;cursor:pointer;border:0;border-radius:12px}
 .o.ok{background:#d6f5dd}.o.no{background:#fbd9dd}.why{font-size:15px;color:#444;margin:6px 0 10px}
 .b{background:#e0566b;color:#fff;padding:13px 18px;width:100%;margin-top:6px}.b2{background:#fff;color:#e0566b;border:2px solid #e0566b;padding:11px 18px;width:100%;margin-top:9px}
 .big{font-size:40px;font-weight:700;margin:6px 0}
+.li{padding:12px 0;border-bottom:1px solid #eee}.lq{margin:4px 0 6px}.la{color:#1f8a4c;font-weight:600}
 </style></head><body><div class="w">
 <h1>Тренажёр: тест «можете ли вы быть предпринимателем»</h1>
-<p class="s">для соцконтракта. вопросы по порядку, после ответа сразу видно правильный. прогресс сохраняется</p>
+<p class="s">для соцконтракта. вопросы по порядку, после ответа сразу видно правильный. место, где вы остановились, и ваши ошибки сохраняются</p>
 <div class="card" id="app"></div></div>
-<script src="voprosy-450.js"></script>
+<script src="voprosy-450.js?v=9"></script>
 <script>
-const Q=window.QUESTIONS,app=document.getElementById('app');let order,i,score,wrong;
+const Q=window.QUESTIONS,app=document.getElementById('app'),N=Q.length;
 const okList=t=>Array.isArray(t.ok)?t.ok:[t.ok];
-const all=()=>Q.map((_,k)=>k);
-function save(){try{localStorage.setItem('trz',JSON.stringify({i,score,wrong,full:order.length===Q.length}))}catch(e){}}
-function menu(){let st=null;try{st=JSON.parse(localStorage.getItem('trz'))}catch(e){}
- app.innerHTML=`<div class="q">в тренажёре все ${Q.length} вопросов теста, по порядку</div>`;
- if(st&&st.full&&st.i>0&&st.i<Q.length){const c=document.createElement('button');c.className='b';c.textContent='продолжить с вопроса '+(st.i+1);c.onclick=()=>{order=all();i=st.i;score=st.score;wrong=st.wrong;show()};app.appendChild(c)}
- const b=document.createElement('button');b.className=app.querySelector('.b')?'b2':'b';b.textContent='начать с первого вопроса';b.onclick=()=>start(all());app.appendChild(b)}
-function start(list){order=list;i=0;score=0;wrong=[];show()}
-function show(){const t=Q[order[i]];if(order.length===Q.length)save();
- app.innerHTML=`<div class="bar"><i style="width:${i/order.length*100}%"></i></div><div class="n">вопрос ${order[i]+1} из ${Q.length} · верно ${score}</div><div class="q"></div><div id="o"></div><div id="f"></div>`;
- app.querySelector('.q').textContent=t.q;const box=app.querySelector('#o');
- t.a.forEach((txt,k)=>{const b=document.createElement('button');b.className='o';b.textContent=txt;b.onclick=()=>pick(k);box.appendChild(b)})}
-function pick(k){const t=Q[order[i]],ok=okList(t),bs=app.querySelectorAll('.o');bs.forEach(b=>b.disabled=true);
- ok.forEach(x=>bs[x].classList.add('ok'));
- if(ok.includes(k))score++;else{bs[k].classList.add('no');wrong.push(order[i])}
- const f=app.querySelector('#f');
- const n=document.createElement('button');n.className='b';n.textContent=i+1<order.length?'дальше':'результат';n.onclick=()=>{i++;i<order.length?show():end()};f.appendChild(n)}
-function end(){if(order.length===Q.length){try{localStorage.removeItem('trz')}catch(e){}}
- const p=Math.round(score/order.length*100);
- app.innerHTML=`<div class="n">результат</div><div class="big">${score} из ${order.length}</div><p>${p>=80?'отлично, вы готовы к тесту':'ещё немного потренируйтесь'}</p>`;
- if(wrong.length){const b=document.createElement('button');b.className='b';b.textContent='повторить ошибки ('+wrong.length+')';const w=wrong.slice();b.onclick=()=>start(w);app.appendChild(b)}
- const r=document.createElement('button');r.className='b2';r.textContent='в начало';r.onclick=menu;app.appendChild(r)}
+function load(){let d={};try{d=JSON.parse(localStorage.getItem('trz2'))||{}}catch(e){}
+ return {pos:d.pos||0,score:d.score||0,wrong:Array.isArray(d.wrong)?d.wrong:[]}}
+let S=load();
+function save(){try{localStorage.setItem('trz2',JSON.stringify(S))}catch(e){}}
+function addWrong(k){if(!S.wrong.includes(k)){S.wrong.push(k);S.wrong.sort((x,y)=>x-y)}}
+function delWrong(k){S.wrong=S.wrong.filter(x=>x!==k)}
+function btn(txt,cls,fn,parent){const b=document.createElement('button');b.className=cls;b.textContent=txt;b.onclick=fn;(parent||app).appendChild(b);return b}
+function el(tag,cls,txt,parent){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;(parent||app).appendChild(e);return e}
+let mode,list,i,sc;
+function menu(){app.innerHTML='';const done=S.pos>=N;
+ el('div','q',done?`вы прошли все ${N} вопросов`:S.pos>0?`пройдено ${S.pos} из ${N}`:`в тренажёре все ${N} вопросов теста, по порядку`);
+ if(S.pos>0)el('div','n',`верно ${S.score} · ошибок сейчас ${S.wrong.length}`);
+ if(S.pos>0&&!done)btn('продолжить с вопроса '+(S.pos+1),'b',()=>runMain());
+ if(S.pos===0)btn('начать с первого вопроса','b',()=>runMain());
+ if(S.wrong.length){btn('повторить ошибки ('+S.wrong.length+')',S.pos>0&&!done?'b2':'b',()=>runErr());btn('посмотреть ошибки','b2',showErr)}
+ if(S.pos>0)btn('начать заново с первого вопроса','b2',()=>{if(confirm('начать с первого вопроса? ошибки останутся сохранены')){S.pos=0;S.score=0;save();runMain()}})}
+function runMain(){mode='main';show()}
+function runErr(){mode='err';list=S.wrong.slice();i=0;sc=0;show()}
+function cur(){return mode==='main'?S.pos:list[i]}
+function show(){const k=cur(),t=Q[k];app.innerHTML='';
+ const tot=mode==='main'?N:list.length,at=mode==='main'?S.pos:i;
+ const bar=el('div','bar');const f=document.createElement('i');f.style.width=(at/tot*100)+'%';bar.appendChild(f);
+ el('div','n',mode==='main'?`вопрос ${k+1} из ${N} · верно ${S.score}`:`работа над ошибками: ${i+1} из ${list.length} · вопрос №${k+1}`);
+ el('div','q',t.q);const box=el('div');
+ t.a.forEach((txt,j)=>btn(txt,'o',()=>pick(j),box));
+ el('div',null,null).id='f';
+ btn('в меню','b2',menu)}
+function pick(j){const k=cur(),t=Q[k],ok=okList(t),bs=app.querySelectorAll('.o');bs.forEach(b=>b.disabled=true);
+ ok.forEach(x=>bs[x].classList.add('ok'));const right=ok.includes(j);
+ if(!right)bs[j].classList.add('no');
+ if(mode==='main'){if(right){S.score++;delWrong(k)}else addWrong(k);S.pos=k+1}
+ else{if(right){sc++;delWrong(k)}else addWrong(k)}
+ save();
+ const last=mode==='main'?S.pos>=N:i+1>=list.length;
+ const f=document.getElementById('f');
+ const n=btn(last?'результат':'дальше','b',()=>{if(mode==='err')i++;last?end():show()},f);
+ app.insertBefore(f,app.lastChild)}
+function end(){app.innerHTML='';
+ if(mode==='main'){const p=Math.round(S.score/N*100);el('div','n','результат');el('div','big',`${S.score} из ${N}`);el('p',null,p>=80?'отлично, вы готовы к тесту':'ещё немного потренируйтесь')}
+ else{el('div','n','работа над ошибками');el('div','big',`${sc} из ${list.length}`);el('p',null,S.wrong.length?`осталось ошибок: ${S.wrong.length}`:'все ошибки исправлены')}
+ menuBtns()}
+function menuBtns(){if(S.wrong.length){btn('повторить ошибки ('+S.wrong.length+')','b',()=>runErr());btn('посмотреть ошибки','b2',showErr)}btn('в меню','b2',menu)}
+function showErr(){app.innerHTML='';el('div','q',`ваши ошибки: ${S.wrong.length}`);
+ btn('повторить ошибки','b',()=>runErr());
+ S.wrong.forEach(k=>{const t=Q[k],d=el('div','li');el('div','n','вопрос №'+(k+1),d);el('div','lq',t.q,d);
+  okList(t).forEach(x=>el('div','la','✓ '+t.a[x],d))});
+ btn('в меню','b2',menu)}
 menu();
 </script></body></html>
