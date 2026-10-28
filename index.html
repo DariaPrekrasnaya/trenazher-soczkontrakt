@@ -14,26 +14,30 @@ button{font:inherit;cursor:pointer;border:0;border-radius:12px}
 .big{font-size:40px;font-weight:700;margin:6px 0}
 </style></head><body><div class="w">
 <h1>Тренажёр: тест «можете ли вы быть предпринимателем»</h1>
-<p class="s">для соцконтракта. отвечайте — сразу видно правильный ответ, в конце можно повторить ошибки</p>
+<p class="s">для соцконтракта. вопросы по порядку, после ответа сразу видно правильный. прогресс сохраняется</p>
 <div class="card" id="app"></div></div>
-<script src="questions.js"></script>
+<script src="questions.js?v=3"></script>
 <script>
-const Q=window.QUESTIONS,app=document.getElementById('app');let order,i,score,wrong,cur;
+const Q=window.QUESTIONS,app=document.getElementById('app');let order,i,score,wrong;
 const okList=t=>Array.isArray(t.ok)?t.ok:[t.ok];
-function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
-function menu(){app.innerHTML=`<div class="q">всего ${Q.length} вопросов из теста. сколько пройти сейчас?</div>`;
- [[20,'20 вопросов'],[50,'50 вопросов'],[Q.length,'все '+Q.length]].forEach(([n,t])=>{const b=document.createElement('button');b.className=n===20?'b':'b2';b.textContent=t;b.onclick=()=>start(shuffle(Q.map((_,k)=>k)).slice(0,n));app.appendChild(b)})}
-function start(list){order=shuffle(list);i=0;score=0;wrong=[];show()}
-function show(){const t=Q[order[i]];cur=shuffle(t.a.map((_,k)=>k));
- app.innerHTML=`<div class="bar"><i style="width:${i/order.length*100}%"></i></div><div class="n">вопрос ${i+1} из ${order.length} · верно ${score}</div><div class="q"></div><div id="o"></div><div id="f"></div>`;
+const all=()=>Q.map((_,k)=>k);
+function save(){try{localStorage.setItem('trz',JSON.stringify({i,score,wrong,full:order.length===Q.length}))}catch(e){}}
+function menu(){let st=null;try{st=JSON.parse(localStorage.getItem('trz'))}catch(e){}
+ app.innerHTML=`<div class="q">в тренажёре все ${Q.length} вопросов теста, по порядку</div>`;
+ if(st&&st.full&&st.i>0&&st.i<Q.length){const c=document.createElement('button');c.className='b';c.textContent='продолжить с вопроса '+(st.i+1);c.onclick=()=>{order=all();i=st.i;score=st.score;wrong=st.wrong;show()};app.appendChild(c)}
+ const b=document.createElement('button');b.className=app.querySelector('.b')?'b2':'b';b.textContent='начать с первого вопроса';b.onclick=()=>start(all());app.appendChild(b)}
+function start(list){order=list;i=0;score=0;wrong=[];show()}
+function show(){const t=Q[order[i]];if(order.length===Q.length)save();
+ app.innerHTML=`<div class="bar"><i style="width:${i/order.length*100}%"></i></div><div class="n">вопрос ${order[i]+1} из ${Q.length} · верно ${score}</div><div class="q"></div><div id="o"></div><div id="f"></div>`;
  app.querySelector('.q').textContent=t.q;const box=app.querySelector('#o');
- cur.forEach(k=>{const b=document.createElement('button');b.className='o';b.textContent=t.a[k];b.onclick=()=>pick(k);box.appendChild(b)})}
+ t.a.forEach((txt,k)=>{const b=document.createElement('button');b.className='o';b.textContent=txt;b.onclick=()=>pick(k);box.appendChild(b)})}
 function pick(k){const t=Q[order[i]],ok=okList(t),bs=app.querySelectorAll('.o');bs.forEach(b=>b.disabled=true);
- cur.forEach((orig,pos)=>{if(ok.includes(orig))bs[pos].classList.add('ok')});
- if(ok.includes(k))score++;else{bs[cur.indexOf(k)].classList.add('no');wrong.push(order[i])}
- const f=app.querySelector('#f');if(t.why){const d=document.createElement('div');d.className='why';d.textContent=t.why;f.appendChild(d)}
+ ok.forEach(x=>bs[x].classList.add('ok'));
+ if(ok.includes(k))score++;else{bs[k].classList.add('no');wrong.push(order[i])}
+ const f=app.querySelector('#f');
  const n=document.createElement('button');n.className='b';n.textContent=i+1<order.length?'дальше':'результат';n.onclick=()=>{i++;i<order.length?show():end()};f.appendChild(n)}
-function end(){const p=Math.round(score/order.length*100);
+function end(){if(order.length===Q.length){try{localStorage.removeItem('trz')}catch(e){}}
+ const p=Math.round(score/order.length*100);
  app.innerHTML=`<div class="n">результат</div><div class="big">${score} из ${order.length}</div><p>${p>=80?'отлично, вы готовы к тесту':'ещё немного потренируйтесь'}</p>`;
  if(wrong.length){const b=document.createElement('button');b.className='b';b.textContent='повторить ошибки ('+wrong.length+')';const w=wrong.slice();b.onclick=()=>start(w);app.appendChild(b)}
  const r=document.createElement('button');r.className='b2';r.textContent='в начало';r.onclick=menu;app.appendChild(r)}
